@@ -20,6 +20,7 @@
     ];
     function addStyle() {
         if (document.getElementById('__clearpane_yt_css')) return;
+        if (!document.head && !document.documentElement) return;   // too early; tick() retries
         var style = document.createElement('style');
         style.id = '__clearpane_yt_css';
         style.textContent = hidden.join(',') + '{display:none!important}';

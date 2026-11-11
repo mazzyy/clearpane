@@ -1,0 +1,26 @@
+Clearpane opens the websites you use as if they were apps, and keeps them clean.
+
+<b>Blocking</b>
+• Blocks requests to about 80,000 known ad, tracker and malware hosts
+• Hides common ad containers and floating banner ads inside pages
+• Refuses popups and new windows
+• "Stay on this site" stops a page from redirecting you somewhere else
+
+<b>Your sites, as apps</b>
+• Favourites appear as a grid of tiles with each site's own icon
+• Put any favourite on your home screen as its own icon
+• Choose what opens at launch: your favourites, where you left off, or a start page
+
+<b>Everyday browsing</b>
+• Tap the site name to type an address or search with DuckDuckGo
+• Audio keeps playing with the screen off
+• File uploads and downloads, including files a page builds itself
+• History grouped by site, searchable, with multi-select delete; or switched off entirely
+
+<b>Privacy</b>
+Clearpane has no account, no analytics and no servers of its own. Favourites, history and settings stay on your device. Third-party cookies are refused.
+
+<b>Good to know</b>
+• Blocking is by host name plus general page rules, so some ads get through.
+• The optional YouTube ad skipper is best-effort and is against YouTube's terms of service.
+• A small "Suggested" section under Favourites links to the developer's own free tools. It can be hidden with one tap.

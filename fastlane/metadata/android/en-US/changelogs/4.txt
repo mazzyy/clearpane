@@ -1,0 +1,6 @@
+• Far stronger ad blocking: about 80,000 blocked hosts and in-page banner hiding
+• New slim toolbar that hides while you scroll
+• Add any favourite to your home screen as its own icon
+• Choose what the app opens with
+• Audio keeps playing with the screen off
+• File uploads and downloads now work

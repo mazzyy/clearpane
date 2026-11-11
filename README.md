@@ -20,15 +20,21 @@
 ## What it does
 
 - **Start page**: the address you set in Settings opens every time the app starts.
-- **Ad and tracker blocking**: about 3,700 known ad hosts are blocked, and common ad
-  containers are hidden.
+- **Ad and tracker blocking**: about 80,000 known ad, tracker and malware hosts are blocked
+  on Android (about 3,700 on Mac), and common ad containers and floating banners are hidden.
 - **Popup and redirect blocking**: no second windows, and a "stay on this site" lock that
   stops a page sending you somewhere else. Search results still open normally.
 - **Favourites as apps**: saved pages appear as a grid of tiles with each site's own icon.
+  On Android, press and hold a tile to put it on your home screen as its own icon.
   A small Suggested section sits underneath and can be hidden.
+- **Your choice of start**: open on your favourites, where you left off, or a start page.
+- **Background audio** (Android): sound keeps playing with the screen off.
+- **Uploads and downloads** (Android): including files a page builds itself, such as an
+  edited PDF.
 - **History your way**: grouped by site or as a flat list, with search and multi-select
   delete. Save every page, only website names, or nothing.
-- **Optional address bar**: type an address, or words to search with DuckDuckGo.
+- **Address or search**: tap the site name in the toolbar to type an address, or words to
+  search with DuckDuckGo.
 - **YouTube ad skipper** (optional, best effort): presses Skip, jumps unskippable ads to
   their end, hides promoted slots. This is against YouTube's terms of service and breaks
   whenever YouTube changes its page.
@@ -60,8 +66,10 @@ Needs macOS 13 or newer. Works on Apple silicon and Intel Macs.
 | To do this | Android | Mac |
 |---|---|---|
 | Set your start page | ⋮ → Settings | ⌘, |
+| Go to an address or search | Tap the site name in the toolbar | Type in the address bar |
 | Save the current page | Star in the toolbar | Star in the toolbar, or ⌘D |
 | Open Favourites | Grid button in the toolbar | Grid button in the toolbar |
+| Put a site on the home screen | Press and hold its tile → Add to home screen | not available |
 | Open History | ⋮ → History | History → Show History |
 | Delete history | History → Select → Select all → Delete | same |
 | Hide the Suggested section | Hide, next to Suggested | same |
@@ -101,20 +109,25 @@ The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`.
 After changing anything in `shared/`, copy it into the Android assets before building:
 
 ```bash
-cp shared/blocklist.txt shared/blocklist-extra.txt shared/*.js shared/app-pages.html android/app/src/main/assets/
+cp shared/blocklist*.txt shared/*.js shared/app-pages.html android/app/src/main/assets/
 ```
 
 ## Notes
 
 - **Blocklists**: `shared/blocklist.txt` is maintained by hand. `shared/blocklist-extra.txt`
   is Peter Lowe's ad and tracking server list from <https://pgl.yoyo.org/adservers/>; it is
-  his work, and that site has its licence terms. Blocking is by host name, so ads served
-  from the same host as the content get through.
+  his work, and that site has its licence terms. `shared/blocklist-large.txt` is the
+  StevenBlack unified hosts list from <https://github.com/StevenBlack/hosts> (MIT licence),
+  used by the Android app. Blocking is by host name plus general page rules in
+  `shared/adblock.js`, so ads served from the same host as the content can get through.
 - **Site icons** in Favourites are fetched from each site and belong to their owners.
-- **Internal IDs**: the Android application ID and macOS bundle ID are `com.local.webshell`,
-  kept from an earlier name so existing installs keep their settings.
+- **App IDs**: the Android application ID is `io.github.mazzyy.clearpane`. Versions before
+  1.3 used `com.local.webshell`, so 1.3 installs as a new app; uninstall the old one. The
+  macOS bundle ID is still `com.local.webshell`.
+- **F-Droid**: the app builds from source with no proprietary dependencies, and store
+  metadata lives in `fastlane/metadata/android`. It has not been submitted to F-Droid yet.
 - **Signing**: the APK is a debug-signed build and the Mac app is ad-hoc signed, which is
   why both need the extra install step above.
-- **Licence**: none has been chosen for this code yet.
+- **Licence**: GPL-3.0. See [LICENSE](LICENSE).
 
 Made by [Abdul Musawar](https://github.com/mazzyy).

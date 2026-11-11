@@ -28,12 +28,30 @@
   button:disabled { opacity: .45; }
 
   /* ---- page tabs */
-  nav { position: sticky; top: 0; z-index: 5; display: flex; justify-content: center; gap: 4px;
-        padding: 10px 12px; background: var(--bg); border-bottom: 1px solid var(--line); }
-  nav button { background: transparent; color: var(--muted); padding: 7px 18px; font-weight: 500; }
+  /* One slim row: the three sections on the left, the section's own action on the right. */
+  nav { display: flex; align-items: center; gap: 2px; max-width: 860px; margin: 0 auto;
+        padding: 10px 12px 2px; }
+  nav button { background: transparent; color: var(--muted); padding: 6px 13px; font-weight: 500; }
   nav button.on { background: var(--accent-soft); color: var(--accent); }
+  nav .grow { flex: 1; }
+  nav button.act { background: var(--chip); color: var(--text); }
+  nav button.act.primary { background: var(--accent); color: #fff; }
 
-  main { max-width: 860px; margin: 0 auto; padding: 18px 14px 56px; }
+  main { max-width: 860px; margin: 0 auto; padding: 14px 14px 56px; }
+  .tile, .tile a { -webkit-touch-callout: none; }
+  .hint { text-align: center; color: var(--muted); font-size: 12px; margin: 22px 0 0; }
+
+  /* Long-press menu for a favourite */
+  .scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 20; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; background: var(--card);
+           border-radius: 18px 18px 0 0; padding: 14px 14px 22px; max-width: 520px; margin: 0 auto;
+           box-shadow: 0 -4px 24px rgba(0, 0, 0, .25); }
+  .sheet b { display: block; text-align: center; padding: 4px 8px 12px; overflow: hidden;
+             text-overflow: ellipsis; white-space: nowrap; }
+  .sheet button { display: block; width: 100%; text-align: left; background: transparent;
+                  border-radius: 12px; padding: 13px 14px; font-size: 15px; }
+  .sheet button:active { background: var(--chip); }
+  .sheet button.warn { color: var(--danger); }
   .head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 2px 16px; }
   .head h1 { font-size: 21px; margin: 0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
              white-space: nowrap; }
@@ -131,6 +149,7 @@
 <body>
 <nav id="tabs"></nav>
 <main id="main"></main>
+<div id="sheet"></div>
 <script>
 (function () {
     // ---- Edit this block to change what the About tab says about you. -------------------
@@ -160,8 +179,8 @@
 
     // The app replaces the marker below with the real data before loading the page.
     var CP = /*CP_DATA*/null || { page: 'favourites', favourites: [], history: [], historyMode: 'all',
-                                   grouped: true, version: '', platform: '', hideSuggested: false };
-    var state = { edit: false, select: false, picked: {}, site: null, query: '' };
+                                   grouped: true, version: '', platform: '', hideSuggested: false, canPin: false };
+    var state = { edit: false, select: false, picked: {}, site: null, query: '', sheet: null };
     var PAGES = [['favourites', 'Favourites'], ['history', 'History'], ['about', 'About']];
 
     function esc(s) {
@@ -203,9 +222,7 @@
     // ------------------------------------------------------------------ favourites
     function favourites() {
         var favs = CP.favourites || [];
-        var html = '<div class="head"><h1>Favourites</h1>' + (favs.length
-            ? '<button data-do="edit" class="' + (state.edit ? 'primary' : '') + '">' +
-              (state.edit ? 'Done' : 'Edit') + '</button>' : '') + '</div>';
+        var html = '';
         if (!favs.length) {
             return html + '<p class="empty" style="margin:36px 20px">No favourites yet.<br>Open a page, then tap the star to save it here.</p>' + suggested();
         }
@@ -214,13 +231,22 @@
             var p = parts(f.url), host = hostOf(f.url), name = siteName(host);
             var root = p && (p.pathname === '/' || p.pathname === '') && !p.search;
             var label = (root || !f.title) ? name : f.title;
-            html += '<div class="tile"><a href="' + esc(f.url) + '"><div class="icon"' + (f.icon
+            html += '<div class="tile" data-u="' + esc(f.url) + '" data-name="' + esc(label) +
+                '"><a href="' + esc(f.url) + '"><div class="icon"' + (f.icon
                 ? '><img alt="" src="data:image/png;base64,' + f.icon + '">'
                 : ' style="background:hsl(' + hue(host) + ',55%,48%)">' + esc(name.charAt(0))) +
                 '</div><span>' + esc(label) + '</span></a>' +
                 '<a class="x" data-do="unfav" data-u="' + esc(f.url) + '">&times;</a></div>';
         });
-        return html + '</div>' + suggested();
+        return html + '</div><p class="hint">Press and hold a tile for more options.</p>' + suggested();
+    }
+    function sheet() {
+        if (!state.sheet) return '';
+        return '<div class="scrim" data-do="sheet-close"></div><div class="sheet"><b>' + esc(state.sheet.name) + '</b>' +
+            '<button data-do="sheet-open">Open</button>' +
+            (CP.canPin ? '<button data-do="sheet-pin">Add to home screen</button>' : '') +
+            '<button data-do="sheet-remove" class="warn">Remove from favourites</button>' +
+            '<button data-do="sheet-close">Cancel</button></div>';
     }
     function suggested() {
         if (CP.hideSuggested) return '<button class="show-sugg" data-do="sugg-show">Show suggestions</button>';
@@ -252,12 +278,11 @@
     }
     function history() {
         if (CP.historyMode === 'off' && !(CP.history || []).length) {
-            return '<div class="head"><h1>History</h1></div>' +
-                '<p class="empty">History is switched off.<br>You can turn it on in Settings.</p>';
+            return '<p class="empty">History is switched off.<br>You can turn it on in Settings.</p>';
         }
         var grouped = CP.grouped && !state.site;
         var rows = historyRows();
-        var html = '<div class="head"><h1>' + (state.site ? esc(siteName(state.site)) : 'History') + '</h1></div>';
+        var html = state.site ? '<div class="head"><h1>' + esc(siteName(state.site)) + '</h1></div>' : '';
 
         html += '<input class="search" id="q" placeholder="Search history" value="' + esc(state.query) + '">';
         html += '<div class="tools">';
@@ -340,7 +365,7 @@
             '<li>Opens your start page as its own app</li><li>Blocks ads, trackers, popups and redirects</li>' +
             '<li>Works for streaming sites, tools and anything else</li><li>Keeps favourites as an app grid</li><li>Keeps history by site, or not at all</li></ul></div></div>' +
             '<div class="card"><h2>Credits</h2>Ad and tracker hosts include Peter Lowe&rsquo;s blocklist ' +
-            '(pgl.yoyo.org/adservers). Site icons belong to their owners and are fetched from each site.</div>';
+            '(pgl.yoyo.org/adservers) and the StevenBlack hosts list (github.com/StevenBlack/hosts). Site icons belong to their owners and are fetched from each site.</div>';
     }
 
     // ------------------------------------------------------------------ render + events
@@ -349,7 +374,10 @@
         document.title = PAGES.filter(function (p) { return p[0] === page; }).map(function (p) { return p[1]; })[0] || 'Clearpane';
         document.getElementById('tabs').innerHTML = PAGES.map(function (p) {
             return '<button data-do="tab" data-page="' + p[0] + '" class="' + (p[0] === page ? 'on' : '') + '">' + p[1] + '</button>';
-        }).join('');
+        }).join('') + '<span class="grow"></span>' + (page === 'favourites' && (CP.favourites || []).length
+            ? '<button data-do="edit" class="act' + (state.edit ? ' primary' : '') + '">' +
+              (state.edit ? 'Done' : 'Edit') + '</button>' : '');
+        document.getElementById('sheet').innerHTML = page === 'favourites' ? sheet() : '';
         var hadFocus = document.activeElement && document.activeElement.id === 'q';
         document.getElementById('main').innerHTML = page === 'history' ? history() : page === 'about' ? about() : favourites();
         var q = document.getElementById('q');
@@ -363,7 +391,11 @@
         while (el && el !== document.body && !(el.getAttribute && el.getAttribute('data-do'))) el = el.parentNode;
         if (!el || el === document.body || !el.getAttribute) return;
         var what = el.getAttribute('data-do');
-        if (what === 'tab') { CP.page = el.getAttribute('data-page'); state.select = false; state.picked = {}; state.site = null; }
+        if (what === 'tab') { CP.page = el.getAttribute('data-page'); state.select = false; state.picked = {}; state.site = null; state.sheet = null; }
+        else if (what === 'sheet-close') state.sheet = null;
+        else if (what === 'sheet-open') { var go = state.sheet.u; state.sheet = null; render(); location.href = go; return; }
+        else if (what === 'sheet-pin') { act('pin', { u: state.sheet.u }); state.sheet = null; }
+        else if (what === 'sheet-remove') { act('remove-favourite', { u: state.sheet.u }); state.sheet = null; }
         else if (what === 'edit') state.edit = !state.edit;
         else if (what === 'unfav') { e.preventDefault(); act('remove-favourite', { u: el.getAttribute('data-u') }); return; }
         else if (what === 'grouped' || what === 'flat') {
@@ -393,6 +425,16 @@
         else return;
         render();
         window.scrollTo(0, what === 'tab' || what === 'site' || what === 'back' ? 0 : window.pageYOffset);
+    });
+
+    // Press and hold (or right-click) a favourite for its menu.
+    document.addEventListener('contextmenu', function (e) {
+        var el = e.target;
+        while (el && el !== document.body && !(el.classList && el.classList.contains('tile'))) el = el.parentNode;
+        if (!el || el === document.body || !el.getAttribute) return;
+        e.preventDefault();
+        state.sheet = { u: el.getAttribute('data-u'), name: el.getAttribute('data-name') };
+        render();
     });
 
     /** Called by the app after favourites or history change, so the page redraws in place. */
