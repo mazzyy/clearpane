@@ -61,8 +61,8 @@ import java.util.Set;
 public class MainActivity extends Activity {
 
     private static final String DEFAULT_HOME = "https://www.wikipedia.org";
-    private static final int BRAND = 0xFF2A2F7A;        // toolbar and status bar
-    private static final int BRAND_ACCENT = 0xFF19C2B6;  // progress line
+    private static final int BRAND = 0xFF231A63;        // toolbar and status bar
+    private static final int BRAND_ACCENT = 0xFFF0478E;  // progress line
 
     private static final String COSMETIC_CSS =
             ".adsbygoogle, ins.adsbygoogle, [id^=\"google_ads_\"], [id^=\"div-gpt-ad\"], "
@@ -688,6 +688,7 @@ public class MainActivity extends Activity {
             data.put("history", loadList(KEY_HISTORY));
             data.put("historyMode", historyMode);
             data.put("grouped", prefs.getBoolean("historyGrouped", true));
+            data.put("hideSuggested", prefs.getBoolean("hideSuggested", false));
             data.put("platform", "android");
             data.put("version", getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
         } catch (Exception ignored) {
@@ -723,6 +724,8 @@ public class MainActivity extends Activity {
             case "set":
                 String grouped = action.getQueryParameter("grouped");
                 if (grouped != null) prefs.edit().putBoolean("historyGrouped", grouped.equals("1")).apply();
+                String suggested = action.getQueryParameter("suggested");
+                if (suggested != null) prefs.edit().putBoolean("hideSuggested", suggested.equals("0")).apply();
                 break;
             default:
                 break;

@@ -1,7 +1,8 @@
-// Draws the Clearpane logo. Usage: make-icon <mode> <pixels> <out.png>
+// Draws the Clearpane logo: a play mark on a glass disc over an indigo-to-pink tile.
+// Usage: make-icon <mode> <pixels> <out.png>
 //   mode: mac    - rounded tile with margin, for the macOS app icon
 //         round  - full-bleed rounded tile, for legacy Android launchers and the logo file
-//         fg     - glyph only on transparent, for the Android adaptive-icon foreground
+//         fg     - mark only on transparent, for the Android adaptive-icon foreground
 //         bg     - gradient only, for the Android adaptive-icon background
 import AppKit
 
@@ -20,46 +21,56 @@ rep.size = NSSize(width: s, height: s)
 NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
 
-let teal = NSColor(srgbRed: 0.06, green: 0.73, blue: 0.69, alpha: 1)
-let indigo = NSColor(srgbRed: 0.24, green: 0.22, blue: 0.80, alpha: 1)
+func rgb(_ hex: Int, _ alpha: CGFloat = 1) -> NSColor {
+    NSColor(srgbRed: CGFloat((hex >> 16) & 0xff) / 255, green: CGFloat((hex >> 8) & 0xff) / 255,
+            blue: CGFloat(hex & 0xff) / 255, alpha: alpha)
+}
 
 if mode != "fg" {
     var rect = NSRect(x: 0, y: 0, width: s, height: s)
     var radius: CGFloat = 0
     if mode == "mac" { rect = rect.insetBy(dx: s * 0.098, dy: s * 0.098); radius = rect.width * 0.225 }
-    if mode == "round" { radius = s * 0.22 }
+    if mode == "round" { radius = s * 0.225 }
     let tile = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
-    NSGradient(starting: teal, ending: indigo)!.draw(in: tile, angle: -45)
+    NSGradient(colors: [rgb(0x1E1B6E), rgb(0x7C3AED), rgb(0xF0478E)],
+               atLocations: [0, 0.55, 1], colorSpace: .sRGB)!.draw(in: tile, angle: -45)
+    // Soft light from the top-left corner.
+    NSGraphicsContext.saveGraphicsState()
+    tile.addClip()
+    NSGradient(starting: rgb(0xFFFFFF, 0.22), ending: rgb(0xFFFFFF, 0))!
+        .draw(fromCenter: NSPoint(x: rect.minX + rect.width * 0.2, y: rect.maxY - rect.height * 0.12), radius: 0,
+              toCenter: NSPoint(x: rect.minX + rect.width * 0.2, y: rect.maxY - rect.height * 0.12),
+              radius: rect.width * 0.75, options: [])
+    NSGraphicsContext.restoreGraphicsState()
 }
 
 if mode != "bg" {
-    // A window pane with a tick: a clean page, checked.
-    let fraction: CGFloat = mode == "fg" ? 0.40 : (mode == "mac" ? 0.44 : 0.52)
-    let side = s * fraction
-    let o = (s - side) / 2
-    let pane = NSRect(x: o, y: o, width: side, height: side)
-    let lw = side * 0.085
+    let fraction: CGFloat = mode == "fg" ? 0.44 : (mode == "mac" ? 0.50 : 0.60)
+    let d = s * fraction
+    let c = NSPoint(x: s / 2, y: s / 2)
+
+    // Glass disc with a fine rim.
+    let disc = NSBezierPath(ovalIn: NSRect(x: c.x - d / 2, y: c.y - d / 2, width: d, height: d))
+    rgb(0xFFFFFF, 0.16).setFill()
+    disc.fill()
+    rgb(0xFFFFFF, 0.55).setStroke()
+    disc.lineWidth = d * 0.035
+    disc.stroke()
+
+    // Play mark with rounded corners, nudged right so it looks centred.
+    let t = d * 0.40
+    let ox = c.x + t * 0.10
+    let play = NSBezierPath()
+    play.move(to: NSPoint(x: ox - t * 0.42, y: c.y + t * 0.52))
+    play.line(to: NSPoint(x: ox - t * 0.42, y: c.y - t * 0.52))
+    play.line(to: NSPoint(x: ox + t * 0.52, y: c.y))
+    play.close()
+    play.lineJoinStyle = .round
+    play.lineWidth = t * 0.26
+    NSColor.white.setFill()
     NSColor.white.setStroke()
-
-    let outline = NSBezierPath(roundedRect: pane, xRadius: side * 0.2, yRadius: side * 0.2)
-    outline.lineWidth = lw
-    outline.stroke()
-
-    let bar = NSBezierPath()
-    let barY = pane.maxY - side * 0.27
-    bar.move(to: NSPoint(x: pane.minX, y: barY))
-    bar.line(to: NSPoint(x: pane.maxX, y: barY))
-    bar.lineWidth = lw
-    bar.stroke()
-
-    let tick = NSBezierPath()
-    tick.move(to: NSPoint(x: pane.minX + side * 0.28, y: pane.minY + side * 0.38))
-    tick.line(to: NSPoint(x: pane.minX + side * 0.44, y: pane.minY + side * 0.22))
-    tick.line(to: NSPoint(x: pane.minX + side * 0.73, y: pane.minY + side * 0.54))
-    tick.lineWidth = lw * 1.2
-    tick.lineCapStyle = .round
-    tick.lineJoinStyle = .round
-    tick.stroke()
+    play.fill()
+    play.stroke()
 }
 
 NSGraphicsContext.restoreGraphicsState()

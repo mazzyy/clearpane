@@ -7,7 +7,12 @@ APP="Clearpane.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-swiftc -O -swift-version 5 -target "$(uname -m)-apple-macos13.0" main.swift -o "$APP/Contents/MacOS/Clearpane"
+# Universal binary: Apple silicon and Intel.
+for arch in arm64 x86_64; do
+    swiftc -O -swift-version 5 -target "$arch-apple-macos13.0" main.swift -o "build-$arch"
+done
+lipo -create build-arm64 build-x86_64 -output "$APP/Contents/MacOS/Clearpane"
+rm -f build-arm64 build-x86_64
 cp ../shared/blocklist.txt ../shared/blocklist-extra.txt ../shared/youtube-skip.js ../shared/icon-finder.js ../shared/app-pages.html AppIcon.icns "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
@@ -21,7 +26,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleExecutable</key><string>Clearpane</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.1</string>
+    <key>CFBundleShortVersionString</key><string>1.2</string>
     <key>CFBundleVersion</key><string>1</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>NSHighResolutionCapable</key><true/>

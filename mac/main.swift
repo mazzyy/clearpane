@@ -529,6 +529,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             "history": PageStore.load(PageStore.historyKey),
             "historyMode": Prefs.historyMode,
             "grouped": Prefs.d.object(forKey: "historyGrouped") as? Bool ?? true,
+            "hideSuggested": Prefs.d.bool(forKey: "hideSuggested"),
             "platform": "mac",
             "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
         ]
@@ -576,6 +577,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             pushInternal()
         case "set":
             if let grouped = value("grouped") { Prefs.d.set(grouped == "1", forKey: "historyGrouped") }
+            if let suggested = value("suggested") { Prefs.d.set(suggested == "0", forKey: "hideSuggested") }
         default:
             break
         }

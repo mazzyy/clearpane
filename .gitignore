@@ -12,3 +12,6 @@ android/local.properties
 android/.idea/
 *.iml
 *.apk
+
+# Packaged downloads (published as GitHub release files instead)
+dist/
