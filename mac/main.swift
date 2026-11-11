@@ -781,6 +781,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     // MARK: Navigation policy
 
+    /// Search engines exist to send you elsewhere, so they are not a site to be locked onto.
+    func isSearchSite(_ host: String?) -> Bool {
+        guard let host = host?.lowercased(), !host.isEmpty else { return false }
+        if host == "search.brave.com" { return true }
+        let name = siteKey(host).split(separator: ".").first.map(String.init) ?? ""
+        return ["duckduckgo", "google", "bing", "startpage", "ecosia", "qwant", "yahoo"].contains(name)
+    }
+
+    /// When the user follows a result from a search page, extend the "stay on this site"
+    /// lock to the site they chose, so the result opens instead of being blocked.
+    func leaveSearchIfNeeded(_ target: URL, userDriven: Bool) {
+        guard Prefs.lockToSite, userDriven, let host = target.host,
+              target.scheme == "http" || target.scheme == "https",
+              isSearchSite(webView.url?.host) else { return }
+        if Prefs.blockAds && blocklist.isBlocked(host) { return }
+        if lockedSites.insert(siteKey(host)).inserted {
+            // Lets the chosen site finish any redirects of its own (e.g. to its www. address).
+            appInitiatedLoad = true
+        }
+    }
+
     /// Returns true if a top-level navigation to this URL should be allowed.
     func allowsTopLevel(_ url: URL) -> Bool {
         let scheme = (url.scheme ?? "").lowercased()
@@ -812,6 +833,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             openStored(url.absoluteString)
             return
         }
+        leaveSearchIfNeeded(url, userDriven: navigationAction.navigationType == .linkActivated)
         if allowsTopLevel(url) {
             decisionHandler(.allow)
         } else {
@@ -865,6 +887,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         // Never open a second window. A real link click (target=_blank) to an allowed
         // page opens in place; script-opened windows are dropped when popup blocking is on.
         let isClick = navigationAction.navigationType == .linkActivated
+        if isClick, let target = navigationAction.request.url { leaveSearchIfNeeded(target, userDriven: true) }
         if let url = navigationAction.request.url, (isClick || !Prefs.blockPopups), allowsTopLevel(url) {
             webView.load(URLRequest(url: url))
         } else {

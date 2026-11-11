@@ -413,6 +413,32 @@ public class MainActivity extends Activity {
         openUrl(url);
     }
 
+    /** Search engines exist to send you elsewhere, so they are not a site to be locked onto. */
+    private static boolean isSearchSite(String host) {
+        if (host == null || host.isEmpty()) return false;
+        if (host.equalsIgnoreCase("search.brave.com")) return true;
+        String name = siteKey(host).split("\\.")[0];
+        return Arrays.asList("duckduckgo", "google", "bing", "startpage", "ecosia", "qwant", "yahoo")
+                .contains(name);
+    }
+
+    /**
+     * When the user follows a result from a search page, extend the "stay on this site"
+     * lock to the site they chose, so the result opens instead of being blocked.
+     */
+    private void leaveSearchIfNeeded(Uri target, boolean userDriven) {
+        if (!lockToSite || !userDriven) return;
+        String scheme = target.getScheme();
+        String host = target.getHost();
+        if (host == null || !("http".equals(scheme) || "https".equals(scheme))) return;
+        if (!isSearchSite(hostOf(web.getUrl()))) return;
+        if (blockAds && isBlockedHost(host)) return;
+        if (lockedSites.add(siteKey(host))) {
+            // Lets the chosen site finish any redirects of its own (e.g. to its www. address).
+            appInitiatedLoad = true;
+        }
+    }
+
     /** True if a top-level navigation to this URL should go ahead. */
     private boolean allowsTopLevel(Uri uri, boolean isRedirect) {
         String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
@@ -446,6 +472,7 @@ public class MainActivity extends Activity {
                 openUrl(target.toString());
                 return true;
             }
+            leaveSearchIfNeeded(target, request.hasGesture() || request.isRedirect());
             if (allowsTopLevel(target, request.isRedirect())) return false;
             blockedCount++;
             return true;
@@ -532,6 +559,7 @@ public class MainActivity extends Activity {
             String link = hit == null ? null : hit.getExtra();
             boolean isLinkTap = isUserGesture && hit != null
                     && hit.getType() == WebView.HitTestResult.SRC_ANCHOR_TYPE && link != null;
+            if (isLinkTap) leaveSearchIfNeeded(Uri.parse(link), true);
             if (link != null && (isLinkTap || !blockPopups) && allowsTopLevel(Uri.parse(link), false)) {
                 view.loadUrl(link);
             } else {
