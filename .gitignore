@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Mac build output (run mac/build.sh to recreate)
+mac/Clearpane.app/
+
+# Android build output and machine-specific files
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.iml
+*.apk

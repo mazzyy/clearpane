@@ -1,0 +1,356 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clearpane</title>
+<style>
+  :root {
+    --bg: #f3f4f8; --card: #ffffff; --text: #1b1c22; --muted: #6d7180; --line: #e4e6ee;
+    --accent: #3d38cc; --accent-soft: #e9e8fb; --danger: #d6373d; --chip: #e7e9f1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111216; --card: #1c1d23; --text: #ececf1; --muted: #9a9eac; --line: #2b2d36;
+      --accent: #8f8bff; --accent-soft: #2a2950; --danger: #ff6b70; --chip: #2a2c35;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.4 -apple-system, Roboto, "Segoe UI", sans-serif;
+         -webkit-user-select: none; user-select: none; }
+  a { color: inherit; text-decoration: none; }
+  button, input { font: inherit; color: inherit; }
+  button { border: 0; border-radius: 18px; padding: 7px 15px; background: var(--chip); cursor: pointer;
+           white-space: nowrap; }
+  button.primary { background: var(--accent); color: #fff; }
+  button.danger { background: var(--danger); color: #fff; }
+  button:disabled { opacity: .45; }
+
+  /* ---- page tabs */
+  nav { position: sticky; top: 0; z-index: 5; display: flex; justify-content: center; gap: 4px;
+        padding: 10px 12px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  nav button { background: transparent; color: var(--muted); padding: 7px 18px; font-weight: 500; }
+  nav button.on { background: var(--accent-soft); color: var(--accent); }
+
+  main { max-width: 860px; margin: 0 auto; padding: 18px 14px 56px; }
+  .head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 2px 16px; }
+  .head h1 { font-size: 21px; margin: 0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+             white-space: nowrap; }
+  .empty { text-align: center; color: var(--muted); margin: 80px 20px; line-height: 1.7; }
+
+  /* ---- favourites */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 22px 6px; }
+  .tile { position: relative; text-align: center; min-width: 0; }
+  .tile a { display: block; }
+  .icon { width: 62px; height: 62px; border-radius: 16px; margin: 0 auto 7px; display: flex;
+          align-items: center; justify-content: center; overflow: hidden; background: var(--card);
+          box-shadow: 0 1px 5px rgba(0, 0, 0, .2); font-size: 27px; font-weight: 600; color: #fff; }
+  .icon img { width: 100%; height: 100%; object-fit: contain; }
+  .tile span { display: block; font-size: 12px; padding: 0 4px; overflow: hidden; text-overflow: ellipsis;
+               white-space: nowrap; }
+  .tile .x { display: none; position: absolute; top: -7px; left: calc(50% + 18px); width: 24px; height: 24px;
+             border-radius: 12px; background: var(--danger); color: #fff; line-height: 23px; font-size: 16px; }
+  .edit .tile .x { display: block; }
+  @media (min-width: 700px) {
+    .grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 30px 10px; }
+    .icon { width: 76px; height: 76px; border-radius: 19px; font-size: 32px; }
+    .tile span { font-size: 13px; }
+    .tile .x { left: calc(50% + 25px); }
+  }
+
+  /* ---- history */
+  .seg { display: inline-flex; background: var(--chip); border-radius: 18px; padding: 3px; }
+  .seg button { background: transparent; padding: 5px 14px; color: var(--muted); }
+  .seg button.on { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+  .tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 2px 12px; }
+  .tools .grow { flex: 1; }
+  .search { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 9px 13px;
+            background: var(--card); margin-bottom: 12px; outline: none; -webkit-user-select: text;
+            user-select: text; }
+  .search:focus { border-color: var(--accent); }
+  .list { background: var(--card); border-radius: 14px; overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; min-width: 0;
+         border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; }
+  .row:active { background: var(--accent-soft); }
+  .dot { flex: none; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center;
+         justify-content: center; color: #fff; font-weight: 600; font-size: 15px; }
+  /* min-width:0 is what lets long titles and addresses shrink instead of pushing the row wide */
+  .txt { flex: 1; min-width: 0; }
+  .txt b, .txt small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .txt b { font-weight: 500; }
+  .txt small { color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+  .count { flex: none; background: var(--chip); color: var(--muted); border-radius: 10px; font-size: 12px;
+           padding: 2px 9px; }
+  .chev { flex: none; color: var(--muted); font-size: 18px; }
+  .tick { flex: none; width: 22px; height: 22px; border-radius: 11px; border: 2px solid var(--muted);
+          display: none; align-items: center; justify-content: center; color: #fff; font-size: 13px; }
+  .select .tick { display: flex; }
+  .select .chev { display: none; }
+  .row.picked .tick { background: var(--accent); border-color: var(--accent); }
+  .note { color: var(--muted); font-size: 12.5px; margin: 12px 4px 0; }
+
+  /* ---- about */
+  .card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 14px; }
+  .hero { text-align: center; padding: 28px 20px; }
+  .hero svg { width: 84px; height: 84px; }
+  .hero h1 { margin: 12px 0 2px; font-size: 24px; }
+  .hero p { margin: 0; color: var(--muted); }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+             margin: 0 0 10px; }
+  .card ul { margin: 0; padding-left: 20px; }
+  .card li { margin: 5px 0; }
+  .kv { display: flex; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); min-width: 0; }
+  .kv:first-of-type { border-top: 0; }
+  .kv span { color: var(--muted); flex: none; width: 92px; }
+  .kv a, .kv b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                 font-weight: 500; }
+  .kv a { color: var(--accent); }
+  @media (min-width: 700px) { .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+                               .cols .card { margin-bottom: 0; } .cols { margin-bottom: 14px; } }
+</style>
+</head>
+<body>
+<nav id="tabs"></nav>
+<main id="main"></main>
+<script>
+(function () {
+    // ---- Edit this block to change what the About tab says about you. -------------------
+    var AUTHOR = {
+        name: 'Abdul Musawar',
+        githubUser: 'mazzyy',
+        repo: 'mazzyy/clearpane'
+    };
+    // --------------------------------------------------------------------------------------
+
+    // The app replaces the marker below with the real data before loading the page.
+    var CP = /*CP_DATA*/null || { page: 'favourites', favourites: [], history: [], historyMode: 'all',
+                                   grouped: true, version: '', platform: '' };
+    var state = { edit: false, select: false, picked: {}, site: null, query: '' };
+    var PAGES = [['favourites', 'Favourites'], ['history', 'History'], ['about', 'About']];
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    /** Tells the app to do something; the app cancels the navigation and acts on it. */
+    function act(name, params) {
+        var q = [];
+        for (var k in params || {}) q.push(k + '=' + encodeURIComponent(params[k]));
+        location.href = 'clearpane://' + name + (q.length ? '?' + q.join('&') : '');
+    }
+    function parts(u) { try { return new URL(u); } catch (e) { return null; } }
+    function hostOf(u) { var p = parts(u); return p ? p.hostname : ''; }
+    function siteKey(host) {
+        var p = host.toLowerCase().split('.');
+        if (p.length <= 2) return p.join('.');
+        var second = ['co', 'com', 'org', 'net', 'gov', 'ac', 'edu'];
+        var take = (p[p.length - 1].length === 2 && second.indexOf(p[p.length - 2]) >= 0) ? 3 : 2;
+        return p.slice(-take).join('.');
+    }
+    function siteName(host) {
+        var n = siteKey(host).split('.')[0] || host;
+        return n ? n.charAt(0).toUpperCase() + n.slice(1) : '?';
+    }
+    function hue(s) {
+        var h = 5381;
+        for (var i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+        return h % 360;
+    }
+    /** "youtube.com/watch" for a long address: host and path, no query string. */
+    function shortUrl(u) {
+        var p = parts(u);
+        if (!p) return u;
+        return p.hostname.replace(/^(www|m)\./, '') + (p.pathname === '/' ? '' : p.pathname) +
+            (p.search ? ' ?…' : '');
+    }
+
+    // ------------------------------------------------------------------ favourites
+    function favourites() {
+        var favs = CP.favourites || [];
+        var html = '<div class="head"><h1>Favourites</h1>' + (favs.length
+            ? '<button data-do="edit" class="' + (state.edit ? 'primary' : '') + '">' +
+              (state.edit ? 'Done' : 'Edit') + '</button>' : '') + '</div>';
+        if (!favs.length) {
+            return html + '<p class="empty">No favourites yet.<br>Open a page, then tap the star to save it here.</p>';
+        }
+        html += '<div class="grid' + (state.edit ? ' edit' : '') + '">';
+        favs.forEach(function (f) {
+            var p = parts(f.url), host = hostOf(f.url), name = siteName(host);
+            var root = p && (p.pathname === '/' || p.pathname === '') && !p.search;
+            var label = (root || !f.title) ? name : f.title;
+            html += '<div class="tile"><a href="' + esc(f.url) + '"><div class="icon"' + (f.icon
+                ? '><img alt="" src="data:image/png;base64,' + f.icon + '">'
+                : ' style="background:hsl(' + hue(host) + ',55%,48%)">' + esc(name.charAt(0))) +
+                '</div><span>' + esc(label) + '</span></a>' +
+                '<a class="x" data-do="unfav" data-u="' + esc(f.url) + '">&times;</a></div>';
+        });
+        return html + '</div>';
+    }
+
+    // ------------------------------------------------------------------ history
+    function historyRows() {
+        var q = state.query.toLowerCase(), rows = [];
+        (CP.history || []).forEach(function (h, i) {
+            var site = siteKey(hostOf(h.url));
+            if (state.site && site !== state.site) return;
+            if (q && (h.title + ' ' + h.url).toLowerCase().indexOf(q) < 0) return;
+            rows.push({ i: i, url: h.url, title: h.title, site: site });
+        });
+        return rows;
+    }
+    function history() {
+        if (CP.historyMode === 'off' && !(CP.history || []).length) {
+            return '<div class="head"><h1>History</h1></div>' +
+                '<p class="empty">History is switched off.<br>You can turn it on in Settings.</p>';
+        }
+        var grouped = CP.grouped && !state.site;
+        var rows = historyRows();
+        var html = '<div class="head"><h1>' + (state.site ? esc(siteName(state.site)) : 'History') + '</h1></div>';
+
+        html += '<input class="search" id="q" placeholder="Search history" value="' + esc(state.query) + '">';
+        html += '<div class="tools">';
+        if (state.site) html += '<button data-do="back">&lsaquo; All sites</button>';
+        else html += '<div class="seg"><button data-do="grouped" class="' + (CP.grouped ? 'on' : '') +
+            '">By site</button><button data-do="flat" class="' + (CP.grouped ? '' : 'on') + '">All pages</button></div>';
+        html += '<span class="grow"></span>';
+        var picked = Object.keys(state.picked).length;
+        if (state.select) {
+            html += '<button data-do="all">Select all</button>' +
+                '<button data-do="delete" class="danger"' + (picked ? '' : ' disabled') + '>Delete' +
+                (picked ? ' (' + picked + ')' : '') + '</button><button data-do="select">Cancel</button>';
+        } else if (rows.length) {
+            html += '<button data-do="select">Select</button>';
+        }
+        html += '</div>';
+
+        if (!rows.length) {
+            return html + '<p class="empty">' + (state.query ? 'Nothing matches your search.' : 'No history yet.') + '</p>';
+        }
+        html += '<div class="list' + (state.select ? ' select' : '') + '">';
+        if (grouped) {
+            var order = [], counts = {};
+            rows.forEach(function (r) { if (!counts[r.site]) { counts[r.site] = 0; order.push(r.site); } counts[r.site]++; });
+            order.forEach(function (site) {
+                var key = 's:' + site;
+                html += '<a class="row' + (state.picked[key] ? ' picked' : '') + '" data-do="site" data-k="' + esc(key) +
+                    '" data-site="' + esc(site) + '"><span class="tick">&#10003;</span>' +
+                    '<span class="dot" style="background:hsl(' + hue(site) + ',55%,48%)">' + esc(siteName(site).charAt(0)) +
+                    '</span><span class="txt"><b>' + esc(siteName(site)) + '</b><small>' + esc(site) + '</small></span>' +
+                    '<span class="count">' + counts[site] + '</span><span class="chev">&rsaquo;</span></a>';
+            });
+        } else {
+            rows.forEach(function (r) {
+                var key = 'p:' + r.i;
+                html += '<a class="row' + (state.picked[key] ? ' picked' : '') + '" data-do="page" data-k="' + esc(key) +
+                    '" href="' + esc(r.url) + '"><span class="tick">&#10003;</span><span class="txt"><b>' +
+                    esc(r.title || shortUrl(r.url)) + '</b><small>' + esc(shortUrl(r.url)) + '</small></span></a>';
+            });
+        }
+        html += '</div>';
+        if (CP.historyMode === 'sites') html += '<p class="note">Only website names are being saved. Change this in Settings.</p>';
+        if (CP.historyMode === 'off') html += '<p class="note">History is switched off, so nothing new is being saved.</p>';
+        return html;
+    }
+    function visibleKeys() {
+        var grouped = CP.grouped && !state.site, keys = [], seen = {};
+        historyRows().forEach(function (r) {
+            var k = grouped ? 's:' + r.site : 'p:' + r.i;
+            if (!seen[k]) { seen[k] = 1; keys.push(k); }
+        });
+        return keys;
+    }
+    function deletePicked() {
+        var indexes = {};
+        Object.keys(state.picked).forEach(function (k) {
+            if (k.charAt(0) === 'p') { indexes[k.slice(2)] = 1; return; }
+            (CP.history || []).forEach(function (h, i) { if (siteKey(hostOf(h.url)) === k.slice(2)) indexes[i] = 1; });
+        });
+        var list = Object.keys(indexes);
+        if (list.length) act('delete-history', { i: list.join(',') });
+    }
+
+    // ------------------------------------------------------------------ about
+    var LOGO = '<svg viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0" stop-color="#10baaf"/><stop offset="1" stop-color="#3d38cc"/></linearGradient></defs>' +
+        '<rect width="100" height="100" rx="22" fill="url(#g)"/><g fill="none" stroke="#fff" stroke-width="4.4">' +
+        '<rect x="24" y="24" width="52" height="52" rx="10.4"/><path d="M24 38h52"/>' +
+        '<path d="M38.5 56.5l8.3 8.3 15-16.6" stroke-width="5.3" stroke-linecap="round" stroke-linejoin="round"/></g></svg>';
+    function about() {
+        var gh = 'https://github.com/' + AUTHOR.githubUser, repo = 'https://github.com/' + AUTHOR.repo;
+        return '<div class="card hero">' + LOGO + '<h1>Clearpane</h1><p>A clean window onto any website' +
+            (CP.version ? ' &middot; version ' + esc(CP.version) : '') + '</p></div>' +
+            '<div class="cols"><div class="card"><h2>About me</h2>' +
+            '<div class="kv"><span>Developer</span><b>' + esc(AUTHOR.name) + '</b></div>' +
+            '<div class="kv"><span>GitHub</span><a href="' + esc(gh) + '">github.com/' + esc(AUTHOR.githubUser) + '</a></div>' +
+            '<div class="kv"><span>Source code</span><a href="' + esc(repo) + '">github.com/' + esc(AUTHOR.repo) + '</a></div>' +
+            '</div><div class="card"><h2>What it does</h2><ul>' +
+            '<li>Opens your start page as its own app</li><li>Blocks ads, trackers, popups and redirects</li>' +
+            '<li>Keeps favourites as an app grid</li><li>Keeps history by site, or not at all</li></ul></div></div>' +
+            '<div class="card"><h2>Credits</h2>Ad and tracker hosts include Peter Lowe&rsquo;s blocklist ' +
+            '(pgl.yoyo.org/adservers). Site icons belong to their owners and are fetched from each site.</div>';
+    }
+
+    // ------------------------------------------------------------------ render + events
+    function render() {
+        var page = CP.page;
+        document.title = PAGES.filter(function (p) { return p[0] === page; }).map(function (p) { return p[1]; })[0] || 'Clearpane';
+        document.getElementById('tabs').innerHTML = PAGES.map(function (p) {
+            return '<button data-do="tab" data-page="' + p[0] + '" class="' + (p[0] === page ? 'on' : '') + '">' + p[1] + '</button>';
+        }).join('');
+        var hadFocus = document.activeElement && document.activeElement.id === 'q';
+        document.getElementById('main').innerHTML = page === 'history' ? history() : page === 'about' ? about() : favourites();
+        var q = document.getElementById('q');
+        if (q) {
+            q.oninput = function () { state.query = q.value; render(); };
+            if (hadFocus) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+        }
+    }
+    document.addEventListener('click', function (e) {
+        var el = e.target;
+        while (el && el !== document.body && !(el.getAttribute && el.getAttribute('data-do'))) el = el.parentNode;
+        if (!el || el === document.body || !el.getAttribute) return;
+        var what = el.getAttribute('data-do');
+        if (what === 'tab') { CP.page = el.getAttribute('data-page'); state.select = false; state.picked = {}; state.site = null; }
+        else if (what === 'edit') state.edit = !state.edit;
+        else if (what === 'unfav') { e.preventDefault(); act('remove-favourite', { u: el.getAttribute('data-u') }); return; }
+        else if (what === 'grouped' || what === 'flat') {
+            CP.grouped = what === 'grouped'; state.picked = {};
+            act('set', { grouped: CP.grouped ? 1 : 0 });
+        }
+        else if (what === 'back') { state.site = null; state.picked = {}; }
+        else if (what === 'select') { state.select = !state.select; state.picked = {}; }
+        else if (what === 'all') {
+            var keys = visibleKeys(), every = keys.every(function (k) { return state.picked[k]; });
+            state.picked = {};
+            if (!every) keys.forEach(function (k) { state.picked[k] = 1; });
+        }
+        else if (what === 'delete') { deletePicked(); return; }
+        else if (what === 'site' || what === 'page') {
+            var k = el.getAttribute('data-k');
+            if (state.select) {
+                e.preventDefault();
+                if (state.picked[k]) delete state.picked[k]; else state.picked[k] = 1;
+            } else if (what === 'site') { state.site = el.getAttribute('data-site'); state.query = ''; }
+            else return;   // a page row outside select mode is a normal link: the app opens it
+        }
+        else return;
+        render();
+        window.scrollTo(0, what === 'tab' || what === 'site' || what === 'back' ? 0 : window.pageYOffset);
+    });
+
+    /** Called by the app after favourites or history change, so the page redraws in place. */
+    window.cpSet = function (data) {
+        data.page = CP.page;
+        CP = data;
+        state.picked = {};
+        if (state.site && !historyRows().length) state.site = null;
+        if (!(CP.history || []).length) state.select = false;
+        render();
+    };
+    render();
+})();
+</script>
+</body>
+</html>
